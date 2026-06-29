@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
 import Layout from './components/Layout'
+import PinGate, { pinRequerido, pinDesbloqueado } from './components/PinGate'
 import Dashboard from './pages/Dashboard'
 import Configuracion from './pages/Configuracion'
 import Registro from './pages/Registro'
@@ -61,6 +63,12 @@ function AccesoBloqueado({ error }) {
 
 export default function App() {
   const { session, cargando, autoError } = useAuth()
+  const [desbloqueado, setDesbloqueado] = useState(pinDesbloqueado)
+
+  // Barrera de PIN: lo primero, antes de cargar nada.
+  if (pinRequerido() && !desbloqueado) {
+    return <PinGate onUnlock={() => setDesbloqueado(true)} />
+  }
 
   if (!supabaseConfigurado) return <FaltaConfig />
 
