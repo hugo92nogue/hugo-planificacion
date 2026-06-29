@@ -15,6 +15,7 @@ import {
   porCategoria,
   saldoRol,
   gastoMensualPromedio,
+  netoCuentaEnPeriodo,
 } from '../lib/movimientos'
 
 const COLORES = ['#4f8cff', '#2ecc8f', '#ffc24b', '#ff5c7a', '#a78bfa', '#22d3ee', '#f97316', '#e879f9']
@@ -42,9 +43,11 @@ export default function Dashboard() {
   const gastosCat = porCategoria(movimientos, 'gasto', periodo).slice(0, 6)
 
   // Fondo de emergencia: saldo cuenta ahorro vs gasto promedio * meses objetivo.
+  const cuentaAhorro = config.cuentas.find((c) => c.rol === 'ahorro')
   const saldoAhorro = saldoRol(config, movimientos, 'ahorro')
   const objEmergencia = objetivoEmergenciaGs(config, gastoMensualPromedio(movimientos))
   const fracEmergencia = objEmergencia ? Math.min(1, saldoAhorro / objEmergencia) : 0
+  const apartadoMes = cuentaAhorro ? netoCuentaEnPeriodo(movimientos, cuentaAhorro.id, periodo) : 0
 
   const sinDatos = movimientos.length === 0 && instrumentos.length === 0
 
@@ -108,6 +111,7 @@ export default function Dashboard() {
             <Progress fraccion={fracEmergencia} />
           </div>
           <div className="hint">Objetivo: {config.objetivo_emergencia_meses} meses de gastos</div>
+          <div className="hint">Apartado este mes: {formatGs(apartadoMes)}</div>
         </Card>
       </div>
 

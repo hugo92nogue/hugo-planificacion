@@ -9,18 +9,41 @@ export function periodoDe(fecha) {
 
 // ---------- CUENTAS (saldos a partir de transacciones) ----------
 
-// Saldo de cada cuenta = saldo_inicial + ingresos − gastos asignados a esa cuenta.
+// Saldo de cada cuenta = saldo_inicial + ingresos − gastos (± transferencias).
 export function saldosPorCuenta(config, movimientos) {
   const saldos = {}
   ;(config.cuentas || []).forEach((c) => {
     saldos[c.id] = Number(c.saldo_inicial || 0)
   })
   ;(movimientos || []).forEach((m) => {
-    if (!(m.cuenta_id in saldos)) return
     const monto = Number(m.monto || 0)
+    if (m.tipo === 'transferencia') {
+      // Mueve plata de una cuenta a otra (no cambia el patrimonio total).
+      if (m.cuenta_id in saldos) saldos[m.cuenta_id] -= monto
+      if (m.cuenta_destino in saldos) saldos[m.cuenta_destino] += monto
+      return
+    }
+    if (!(m.cuenta_id in saldos)) return
     saldos[m.cuenta_id] += m.tipo === 'ingreso' ? monto : -monto
   })
   return saldos
+}
+
+// Variación neta de UNA cuenta en un período (incluye transferencias).
+// Sirve para "cuánto aparté a ahorro este mes".
+export function netoCuentaEnPeriodo(movimientos, cuentaId, periodo) {
+  let neto = 0
+  ;(movimientos || []).forEach((m) => {
+    if (periodo && periodoDe(m.fecha) !== periodo) return
+    const monto = Number(m.monto || 0)
+    if (m.tipo === 'transferencia') {
+      if (m.cuenta_id === cuentaId) neto -= monto
+      if (m.cuenta_destino === cuentaId) neto += monto
+    } else if (m.cuenta_id === cuentaId) {
+      neto += m.tipo === 'ingreso' ? monto : -monto
+    }
+  })
+  return neto
 }
 
 export function patrimonioCuentasGs(config, movimientos) {
@@ -91,7 +114,7 @@ export function totalesPeriodo(movimientos, periodo) {
     if (periodo && periodoDe(m.fecha) !== periodo) return
     const monto = Number(m.monto || 0)
     if (m.tipo === 'ingreso') ingresos += monto
-    else gastos += monto
+    else if (m.tipo === 'gasto') gastos += monto
   })
   return { ingresos, gastos, neto: ingresos - gastos }
 }
@@ -118,7 +141,7 @@ export function netoPorCuenta(config, movimientos, periodo) {
     if (!map[m.cuenta_id]) return
     if (periodo && periodoDe(m.fecha) !== periodo) return
     if (m.tipo === 'ingreso') map[m.cuenta_id].ingresos += Number(m.monto || 0)
-    else map[m.cuenta_id].gastos += Number(m.monto || 0)
+    else if (m.tipo === 'gasto') map[m.cuenta_id].gastos += Number(m.monto || 0)
   })
   return Object.values(map)
 }
@@ -131,7 +154,7 @@ export function serieMensual(movimientos, nMeses = 12) {
     if (!p) return
     if (!map[p]) map[p] = { periodo: p, ingresos: 0, gastos: 0 }
     if (m.tipo === 'ingreso') map[p].ingresos += Number(m.monto || 0)
-    else map[p].gastos += Number(m.monto || 0)
+    else if (m.tipo === 'gasto') map[p].gastos += Number(m.monto || 0)
   })
   const arr = Object.values(map).sort((a, b) => a.periodo.localeCompare(b.periodo))
   arr.forEach((x) => (x.neto = x.ingresos - x.gastos))

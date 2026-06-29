@@ -19,6 +19,7 @@ App web personal (mobile-first) para registrar ingresos y gastos, repartir el ma
 1. Entrá a [supabase.com](https://supabase.com) → **New project**. Elegí un nombre y una contraseña de base de datos (guardala).
 2. Cuando esté listo, andá a **SQL Editor → New query**, pegá **todo** el contenido de [`supabase_schema.sql`](./supabase_schema.sql) y tocá **Run**. Esto crea las tablas `config` y `meses` y **activa Row Level Security** (cada usuario solo ve sus datos).
    - Después abrí **otra** query y corré también [`supabase_schema_v2.sql`](./supabase_schema_v2.sql): agrega las tablas `movimientos` (registro de cada ingreso/gasto) e `instrumentos` (inversiones), con su RLS. Es necesario para el registro por transacción, los reportes y las inversiones.
+   - Por último corré [`supabase_schema_v3.sql`](./supabase_schema_v3.sql): habilita las **transferencias entre cuentas** (ej.: apartar un % de tu ingreso a la cuenta de ahorro). Es idempotente; si arrancás de cero, con correr **solo v3** ya quedan todas las tablas creadas.
 3. Andá a **Settings → API** y copiá:
    - **Project URL** → será `VITE_SUPABASE_URL`
    - **anon public key** → será `VITE_SUPABASE_ANON_KEY`
