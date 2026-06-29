@@ -2,7 +2,6 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
 import Layout from './components/Layout'
-import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Configuracion from './pages/Configuracion'
 import Registro from './pages/Registro'
@@ -32,21 +31,45 @@ function FaltaConfig() {
   )
 }
 
+function AccesoBloqueado({ error }) {
+  const esConfirmEmail = error === 'CONFIRM_EMAIL'
+  return (
+    <div className="login-wrap">
+      <div className="card login-card">
+        <h2>Casi listo…</h2>
+        {esConfirmEmail ? (
+          <>
+            <p className="muted">
+              Falta apagar la confirmación de email en Supabase para que el acceso libre funcione:
+            </p>
+            <ol className="muted" style={{ paddingLeft: 18, lineHeight: 1.7 }}>
+              <li>Supabase → <b>Authentication → Providers → Email</b></li>
+              <li>Apagá <b>"Confirm email"</b> y tocá <b>Save</b></li>
+              <li>Volvé acá y <b>recargá</b> la página</li>
+            </ol>
+          </>
+        ) : (
+          <p className="muted">No se pudo entrar automáticamente: {error || 'error desconocido'}.</p>
+        )}
+        <button className="btn" onClick={() => window.location.reload()}>
+          Recargar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
-  const { session, cargando } = useAuth()
+  const { session, cargando, autoError } = useAuth()
 
   if (!supabaseConfigurado) return <FaltaConfig />
 
   if (cargando) {
-    return <div className="loader">Cargando…</div>
+    return <div className="loader">Entrando…</div>
   }
 
   if (!session) {
-    return (
-      <Routes>
-        <Route path="*" element={<Login />} />
-      </Routes>
-    )
+    return <AccesoBloqueado error={autoError} />
   }
 
   return (
