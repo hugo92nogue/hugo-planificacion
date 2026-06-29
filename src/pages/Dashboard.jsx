@@ -1,140 +1,147 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { Link } from 'react-router-dom'
 import { useData } from '../context/DataContext'
 import { Card, Stat, Progress } from '../components/UI'
 import { formatGs, formatUsd, gsToUsd, formatPct } from '../lib/format'
+import { fasesEnGs, indiceFaseActual, objetivoEmergenciaGs } from '../lib/finance'
+import { periodoActual } from '../lib/defaults'
 import {
-  saldoTotal,
-  fasesEnGs,
-  indiceFaseActual,
-  tasaAhorro,
-  calcDistribucion,
-  objetivoEmergenciaGs,
-} from '../lib/finance'
+  saldosPorCuenta,
+  patrimonioCuentasGs,
+  totalInvertidoGs,
+  interesAnualGs,
+  patrimonioTotalGs,
+  totalesPeriodo,
+  porCategoria,
+  saldoRol,
+  gastoMensualPromedio,
+} from '../lib/movimientos'
 
-const COLORES = ['#4f8cff', '#2ecc8f', '#ffc24b', '#ff5c7a', '#a78bfa', '#22d3ee']
+const COLORES = ['#4f8cff', '#2ecc8f', '#ffc24b', '#ff5c7a', '#a78bfa', '#22d3ee', '#f97316', '#e879f9']
 
 export default function Dashboard() {
-  const { config, meses, ultimoMes, cargando, error } = useData()
-
+  const { config, movimientos, instrumentos, cargando, error } = useData()
   if (cargando || !config) return <div className="loader">Cargando…</div>
 
   const tc = config.tipo_cambio_usd
-  const saldos = ultimoMes?.saldos_fin_mes || {}
-  const total = saldoTotal(saldos)
+  const periodo = periodoActual()
+
+  const saldosCuentas = saldosPorCuenta(config, movimientos)
+  const enCuentas = patrimonioCuentasGs(config, movimientos)
+  const enInversiones = totalInvertidoGs(instrumentos, tc)
+  const total = patrimonioTotalGs(config, movimientos, instrumentos, tc)
+  const interesAnual = interesAnualGs(instrumentos, tc)
+
   const fases = fasesEnGs(config)
   const idxFase = indiceFaseActual(total, config)
   const metaUsdGs = Number(config.meta.objetivo_usd) * Number(tc)
   const proximaFase = fases[idxFase + 1] ?? metaUsdGs
   const fraccionMeta = metaUsdGs ? Math.min(1, total / metaUsdGs) : 0
 
-  const dist = ultimoMes ? calcDistribucion(ultimoMes, config).distribucion : {}
-  const ta = ultimoMes ? tasaAhorro(ultimoMes, config) : 0
+  const tot = totalesPeriodo(movimientos, periodo)
+  const gastosCat = porCategoria(movimientos, 'gasto', periodo).slice(0, 6)
 
-  // Fondo de emergencia: saldo de la cuenta "ahorro" vs objetivo (gasto necesidades * meses).
-  const cuentaAhorro = config.cuentas.find((c) => c.rol === 'ahorro')
-  const cuentaNec = config.cuentas.find((c) => c.rol === 'necesidades')
-  const gastoNec =
-    (ultimoMes?.gasto_real && cuentaNec && ultimoMes.gasto_real[cuentaNec.id]) ||
-    (ultimoMes && cuentaNec && dist[cuentaNec.id]) ||
-    0
-  const objEmergencia = objetivoEmergenciaGs(config, gastoNec)
-  const saldoEmergencia = cuentaAhorro ? Number(saldos[cuentaAhorro.id] || 0) : 0
-  const fraccionEmergencia = objEmergencia ? Math.min(1, saldoEmergencia / objEmergencia) : 0
+  // Fondo de emergencia: saldo cuenta ahorro vs gasto promedio * meses objetivo.
+  const saldoAhorro = saldoRol(config, movimientos, 'ahorro')
+  const objEmergencia = objetivoEmergenciaGs(config, gastoMensualPromedio(movimientos))
+  const fracEmergencia = objEmergencia ? Math.min(1, saldoAhorro / objEmergencia) : 0
 
-  const datosTorta = config.cuentas
-    .filter((c) => c.rol !== 'negocio')
-    .map((c) => ({ name: c.banco, value: Number(dist[c.id] || 0) }))
-    .filter((d) => d.value > 0)
+  const sinDatos = movimientos.length === 0 && instrumentos.length === 0
 
   return (
     <>
       {error && <div className="alerta">{error}</div>}
 
-      {meses.length === 0 && (
+      {sinDatos && (
         <Card title="¡Bienvenido! 👋">
-          <p className="muted">
-            Todavía no cargaste ningún mes. Empezá registrando tu primer período.
-          </p>
-          <Link className="btn" to="/registro">
-            Registrar mi primer mes
-          </Link>
+          <p className="muted">Empezá registrando tus ingresos y gastos, o cargá una inversión.</p>
+          <div className="btn-row">
+            <Link className="btn" to="/movimientos">Registrar movimiento</Link>
+            <Link className="btn secundario" to="/inversiones">Cargar inversión</Link>
+          </div>
         </Card>
       )}
 
-      <div className="grid2 mb">
-        <Stat label="Patrimonio total" valueGs={total} tipoCambio={tc} />
-        <Stat
-          label="Fase actual"
-          value={idxFase >= 0 ? `Fase ${idxFase + 1} / ${fases.length}` : 'Pre-fase 1'}
-        />
-      </div>
-
-      <Card title="Camino a USD 1.000.000">
-        <div className="row-between mb">
-          <span className="muted">{formatGs(total)}</span>
-          <span className="muted">{formatUsd(config.meta.objetivo_usd)}</span>
+      <Card title="Patrimonio total">
+        <div className="row-between">
+          <span style={{ fontSize: '1.6rem', fontWeight: 800 }}>{formatGs(total)}</span>
+          <span className="muted">≈ {formatUsd(gsToUsd(total, tc))}</span>
         </div>
-        <Progress fraccion={fraccionMeta} />
+        <div className="hint">
+          En cuentas: {formatGs(enCuentas)} · En inversiones: {formatGs(enInversiones)}
+        </div>
+        <div className="mt">
+          <Progress fraccion={fraccionMeta} />
+        </div>
         <div className="row-between mt">
-          <span className="pill">{formatPct(fraccionMeta)} de la meta</span>
-          <span className="muted" style={{ fontSize: '0.8rem' }}>
-            Próxima fase: {formatGs(proximaFase)}
+          <span className="pill">
+            {idxFase >= 0 ? `Fase ${idxFase + 1}/${fases.length}` : 'Pre-fase 1'} · {formatPct(fraccionMeta)} de 1M
+          </span>
+          <span className="muted" style={{ fontSize: '0.78rem' }}>
+            Próxima: {formatGs(proximaFase)}
           </span>
         </div>
       </Card>
 
+      <div className="grid3 mb">
+        <Stat label="Ingresos del mes" valueGs={tot.ingresos} small />
+        <Stat label="Gastos del mes" valueGs={tot.gastos} small />
+        <Stat label="Ahorro neto" valueGs={tot.neto} small />
+      </div>
+
       <div className="grid2">
-        <Card title="Tasa de ahorro (último mes)">
+        <Card title="Inversiones">
           <div className="stat" style={{ background: 'transparent', padding: 0 }}>
-            <div className="value">{formatPct(ta)}</div>
-            <div className="usd">ahorro / margen del mes</div>
+            <div className="value small">{formatGs(enInversiones)}</div>
+            <div className="usd">≈ {formatUsd(gsToUsd(enInversiones, tc))}</div>
           </div>
-          <div className="mt">
-            <Progress fraccion={ta} />
-          </div>
+          <div className="hint mt">Interés anual estimado: {formatGs(interesAnual)}</div>
+          <Link className="btn secundario mt" to="/inversiones">Ver inversiones</Link>
         </Card>
 
         <Card title="Fondo de emergencia">
           <div className="stat" style={{ background: 'transparent', padding: 0 }}>
-            <div className="value small">{formatPct(fraccionEmergencia, 0)}</div>
-            <div className="usd">
-              {formatGs(saldoEmergencia)} / {formatGs(objEmergencia)}
-            </div>
+            <div className="value small">{formatPct(fracEmergencia, 0)}</div>
+            <div className="usd">{formatGs(saldoAhorro)} / {formatGs(objEmergencia)}</div>
           </div>
           <div className="mt">
-            <Progress fraccion={fraccionEmergencia} />
+            <Progress fraccion={fracEmergencia} />
           </div>
-          <div className="hint">Objetivo: {config.objetivo_emergencia_meses} meses de necesidades</div>
+          <div className="hint">Objetivo: {config.objetivo_emergencia_meses} meses de gastos</div>
         </Card>
       </div>
 
-      {datosTorta.length > 0 && (
-        <Card title="Distribución del último mes">
-          <div style={{ width: '100%', height: 240 }}>
+      <Card title="Saldos por cuenta">
+        <table className="tabla">
+          <tbody>
+            {config.cuentas.map((c) => (
+              <tr key={c.id}>
+                <td>
+                  {c.banco} <span className="muted" style={{ fontSize: '0.72rem' }}>· {c.rol}</span>
+                </td>
+                <td>{formatGs(saldosCuentas[c.id] || 0)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      {gastosCat.length > 0 && (
+        <Card title={`Gastos del mes por categoría`}>
+          <div style={{ width: '100%', height: 220 }}>
             <ResponsiveContainer>
               <PieChart>
-                <Pie
-                  data={datosTorta}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label={(e) => formatPct(e.percent, 0)}
-                >
-                  {datosTorta.map((_, i) => (
+                <Pie data={gastosCat} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75}
+                  label={(e) => formatPct(e.percent, 0)}>
+                  {gastosCat.map((_, i) => (
                     <Cell key={i} fill={COLORES[i % COLORES.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(v) => formatGs(v)} />
-                <Legend />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="hint center">
-            Período {ultimoMes?.periodo} · ≈ {formatUsd(gsToUsd(total, tc))} de patrimonio
-          </div>
+          <Link className="btn secundario" to="/reportes">Ver todos los reportes</Link>
         </Card>
       )}
     </>

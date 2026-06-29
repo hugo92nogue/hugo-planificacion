@@ -11,7 +11,8 @@ import {
 } from 'recharts'
 import { useData } from '../context/DataContext'
 import { Card, MoneyField } from '../components/UI'
-import { saldoTotal, calcDistribucion, valorFuturo, retornoReal } from '../lib/finance'
+import { valorFuturo, retornoReal } from '../lib/finance'
+import { patrimonioTotalGs, ahorroMensualPromedio } from '../lib/movimientos'
 import { formatGs, formatUsd, gsToUsd, formatPct } from '../lib/format'
 
 // Escenarios comparables (tasas anuales nominales).
@@ -22,16 +23,7 @@ const ESCENARIOS = [
 ]
 
 export default function Proyector() {
-  const { config, ultimoMes, cargando } = useData()
-
-  const aporteDefecto = (() => {
-    if (!ultimoMes || !config) return 0
-    const dist = calcDistribucion(ultimoMes, config).distribucion
-    const ahorro = config.cuentas.find((c) => c.rol === 'ahorro')
-    return ahorro ? Math.round(dist[ahorro.id] || 0) : 0
-  })()
-
-  const saldoDefecto = saldoTotal(ultimoMes?.saldos_fin_mes || {})
+  const { config, movimientos, instrumentos, cargando } = useData()
 
   const [saldoInicial, setSaldoInicial] = useState(null)
   const [aporte, setAporte] = useState(null)
@@ -41,6 +33,8 @@ export default function Proyector() {
   if (cargando || !config) return <div className="loader">Cargando…</div>
 
   const tc = config.tipo_cambio_usd
+  const saldoDefecto = patrimonioTotalGs(config, movimientos, instrumentos, tc)
+  const aporteDefecto = Math.max(0, Math.round(ahorroMensualPromedio(movimientos)))
   const saldo = saldoInicial == null ? saldoDefecto : saldoInicial
   const aporteUsado = aporte == null ? aporteDefecto : aporte
   const inflacion = config.inflacion_anual

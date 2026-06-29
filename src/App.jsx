@@ -10,6 +10,10 @@ import Ruta from './pages/Ruta'
 import Seguimiento from './pages/Seguimiento'
 import Proyector from './pages/Proyector'
 import Historial from './pages/Historial'
+import Movimientos from './pages/Movimientos'
+import Inversiones from './pages/Inversiones'
+import Reportes from './pages/Reportes'
+import Mas from './pages/Mas'
 import { supabaseConfigurado } from './lib/supabase'
 
 function FaltaConfig() {
@@ -50,6 +54,10 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path="movimientos" element={<Movimientos />} />
+          <Route path="inversiones" element={<Inversiones />} />
+          <Route path="reportes" element={<Reportes />} />
+          <Route path="mas" element={<Mas />} />
           <Route path="registro" element={<Registro />} />
           <Route path="ruta" element={<Ruta />} />
           <Route path="seguimiento" element={<Seguimiento />} />

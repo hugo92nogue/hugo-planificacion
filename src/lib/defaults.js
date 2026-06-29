@@ -14,16 +14,31 @@ export const CONFIG_DEFECTO = {
     fases_millones_gs: [50, 150, 300, 550, 900, 1400, 2100, 3100, 4400, 6100],
   },
   cuentas: [
-    { id: 'cuenta_negocio', banco: 'BNF (METSIM)', rol: 'negocio', porcentaje: null },
-    { id: 'cuenta_necesidades', banco: 'Banco Familiar', rol: 'necesidades', porcentaje: 0.5 },
-    { id: 'cuenta_ahorro', banco: 'Banco Continental', rol: 'ahorro', porcentaje: 0.25 },
-    { id: 'cuenta_ocio', banco: 'Banco-4', rol: 'ocio', porcentaje: 0.25 },
+    { id: 'cuenta_negocio', banco: 'BNF (METSIM)', rol: 'negocio', porcentaje: null, saldo_inicial: 0 },
+    { id: 'cuenta_necesidades', banco: 'Banco Familiar', rol: 'necesidades', porcentaje: 0.5, saldo_inicial: 0 },
+    { id: 'cuenta_ahorro', banco: 'Banco Continental', rol: 'ahorro', porcentaje: 0.25, saldo_inicial: 0 },
+    { id: 'cuenta_ocio', banco: 'Banco-4', rol: 'ocio', porcentaje: 0.25, saldo_inicial: 0 },
   ],
   // umbral de alerta de gasto real (fracción de lo asignado). 1 = avisar si se pasa del 100%.
   umbral_alerta: 1.0,
+  // Categorías para el registro por transacción (editables desde Ajustes).
+  categorias_ingreso: ['METSIM', 'Sueldo', 'Venta', 'Inversión', 'Regalo', 'Otros'],
+  categorias_gasto: [
+    'Supermercado',
+    'Servicios (luz/agua/internet)',
+    'Transporte/Combustible',
+    'Salud',
+    'Educación',
+    'Alquiler/Vivienda',
+    'Restaurantes',
+    'Ocio',
+    'Ropa',
+    'Impuestos',
+    'Otros',
+  ],
 }
 
-// Estructura de un mes vacío para un período dado.
+// Estructura de un mes vacío para un período dado (planificación de sobres).
 export function mesVacio(periodo) {
   return {
     periodo,
@@ -48,3 +63,22 @@ export function periodoActual() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
+
+// Fecha de hoy "YYYY-MM-DD"
+export function hoyISO() {
+  const d = new Date()
+  const off = d.getTimezoneOffset()
+  const local = new Date(d.getTime() - off * 60000)
+  return local.toISOString().slice(0, 10)
+}
+
+export const TIPOS_INSTRUMENTO = [
+  'Plazo fijo',
+  'Bono',
+  'Acción',
+  'Fondo común',
+  'Cripto',
+  'Inmueble',
+  'Préstamo a favor',
+  'Otro',
+]

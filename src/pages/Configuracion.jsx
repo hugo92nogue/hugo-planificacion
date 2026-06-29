@@ -122,8 +122,29 @@ export default function Configuracion() {
                 onChange={(v) => setCuenta(i, 'porcentaje', v)}
               />
             )}
+            <MoneyField
+              label="Saldo inicial (Gs)"
+              value={c.saldo_inicial || 0}
+              onChange={(v) => setCuenta(i, 'saldo_inicial', v)}
+              hint="Lo que ya tenías en esta cuenta antes de empezar a registrar."
+            />
           </div>
         ))}
+      </Card>
+
+      <Card title="Categorías de movimientos">
+        <ListaCategorias
+          titulo="Ingresos"
+          items={cfg.categorias_ingreso || []}
+          onChange={(arr) => set('categorias_ingreso', arr)}
+        />
+        <div className="mt">
+          <ListaCategorias
+            titulo="Gastos"
+            items={cfg.categorias_gasto || []}
+            onChange={(arr) => set('categorias_gasto', arr)}
+          />
+        </div>
       </Card>
 
       <Card title="Meta y 10 fases (en millones de Gs)">
@@ -152,5 +173,55 @@ export default function Configuracion() {
         {guardando ? 'Guardando…' : 'Guardar configuración'}
       </button>
     </>
+  )
+}
+
+// Editor simple de una lista de categorías (agregar / quitar).
+function ListaCategorias({ titulo, items, onChange }) {
+  const [nueva, setNueva] = useState('')
+  const agregar = () => {
+    const v = nueva.trim()
+    if (!v || items.includes(v)) return
+    onChange([...items, v])
+    setNueva('')
+  }
+  const quitar = (i) => onChange(items.filter((_, idx) => idx !== i))
+  return (
+    <div>
+      <h3>{titulo}</h3>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+        {items.map((c, i) => (
+          <span key={c} className="pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {c}
+            <button
+              onClick={() => quitar(i)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--red)',
+                cursor: 'pointer',
+                padding: 0,
+                fontSize: '0.9rem',
+                width: 'auto',
+              }}
+            >
+              ✕
+            </button>
+          </span>
+        ))}
+        {items.length === 0 && <span className="muted">Sin categorías.</span>}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={nueva}
+          onChange={(e) => setNueva(e.target.value)}
+          placeholder="Nueva categoría"
+          onKeyDown={(e) => e.key === 'Enter' && agregar()}
+        />
+        <button className="btn secundario" style={{ width: 'auto' }} onClick={agregar}>
+          Agregar
+        </button>
+      </div>
+    </div>
   )
 }

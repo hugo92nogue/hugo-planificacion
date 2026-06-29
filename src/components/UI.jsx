@@ -89,3 +89,34 @@ export function TextField({ label, value, onChange, hint, type = 'text', placeho
     </div>
   )
 }
+
+export function SelectField({ label, value, onChange, options = [], hint }) {
+  // options: array de strings o de { value, label }
+  return (
+    <div className="field">
+      {label && <label>{label}</label>}
+      <select value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => {
+          const v = typeof o === 'string' ? o : o.value
+          const l = typeof o === 'string' ? o : o.label
+          return (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          )
+        })}
+      </select>
+      {hint && <div className="hint">{hint}</div>}
+    </div>
+  )
+}
+
+export function DateField({ label, value, onChange, hint }) {
+  return (
+    <div className="field">
+      {label && <label>{label}</label>}
+      <input type="date" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
+      {hint && <div className="hint">{hint}</div>}
+    </div>
+  )
+}
